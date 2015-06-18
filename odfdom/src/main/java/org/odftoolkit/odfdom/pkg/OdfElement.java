@@ -292,9 +292,13 @@ abstract public class OdfElement extends ElementNSImpl {
 		return null;
 	}
 
+	protected OdfElement cloneOdfElement() {
+		return ((OdfFileDom) this.ownerDocument).newOdfElement(this.getClass());
+	}
+
 	@Override
 	public Node cloneNode(boolean deep) {
-		OdfElement cloneElement = ((OdfFileDom) this.ownerDocument).newOdfElement(this.getClass());
+		OdfElement cloneElement = this.cloneOdfElement();
 
 		if (attributes != null) {
 			for (int i = 0; i < attributes.getLength(); i++) {
