@@ -178,7 +178,24 @@ public class OdfPackage implements Closeable {
 			return internalPath;
 		}
 	}
-	
+
+    /* Used to embed foreign documents in a relative path */
+    private static class RelativeOdfFileEntry extends OdfFileEntry{
+        private String relativePath;
+        RelativeOdfFileEntry(String relativePath, FileEntryElement fileEntryElement) {
+            super(fileEntryElement);
+            this.relativePath = relativePath;
+        }
+        @Override
+        public String getPath() {
+            return this.relativePath;
+        }
+        @Override
+        public void setPath(String path) {
+            this.relativePath = path;
+        }
+    }
+
 	static {
 		mCompressedFileTypes = new HashSet<String>();
 		String[] typelist = new String[] { "jpg", "gif", "png", "zip", "rar", "jpeg", "mpe", "mpg", "mpeg", "mpeg4", "mp4", "7z", "ari", "arj", "jar", "gz", "tar", "war", "mov", "avi" };
@@ -1347,7 +1364,7 @@ public class OdfPackage implements Closeable {
 		if (sourceDocument.isRootDocument()) {
 			entryMapToCopy = sourceDocument.getPackage().getManifestEntries();
 		} else {
-			entryMapToCopy = sourceDocument.getPackage().getSubDirectoryEntries(this, sourceDocument.getDocumentPath());
+			entryMapToCopy = sourceDocument.getPackage().getSubDirectoryEntries(sourceDocument.getDocumentPath());
 		}
 		// insert to package and add it to the Manifest
 		internalPath = sourceDocument.setDocumentPath(internalPath);
@@ -1421,12 +1438,11 @@ public class OdfPackage implements Closeable {
 	}
 	
 	/** Get all the file entries from a sub directory */
-	private Map<String, OdfFileEntry> getSubDirectoryEntries(OdfPackage destinationPackage, String directory) {
+	private Map<String, OdfFileEntry> getSubDirectoryEntries(String directory) {
 		directory = normalizeDirectoryPath(directory);
 		Map<String, OdfFileEntry> subEntries = new HashMap<String, OdfFileEntry>();
 		Map<String, OdfFileEntry> allEntries = getManifestEntries();
 		Set<String> rootEntryNameSet = getFilePaths();
-		ManifestElement manifestEle = destinationPackage.getManifestDom().getRootElement();
 		for (String entryName : rootEntryNameSet) {
 			if (entryName.startsWith(directory)) {
 				String newEntryName = entryName.substring(directory.length());
@@ -1434,7 +1450,7 @@ public class OdfPackage implements Closeable {
 					newEntryName = SLASH;
 				}
 				OdfFileEntry srcFileEntry = allEntries.get(entryName);
-				OdfFileEntry newFileEntry = new OdfFileEntry(manifestEle.newFileEntryElement(newEntryName, srcFileEntry.getMediaTypeString()));
+				OdfFileEntry newFileEntry = new RelativeOdfFileEntry(newEntryName, srcFileEntry.getOdfElement());
 				newFileEntry.setEncryptionData(srcFileEntry.getEncryptionData());
 				newFileEntry.setSize(srcFileEntry.getSize());
 				subEntries.put(entryName, newFileEntry);
